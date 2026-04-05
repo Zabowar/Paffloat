@@ -42,16 +42,14 @@ Paffloat est une application web permettant de connaître la valeur des objets d
     ```text
     CSFLOAT_API_KEY=votre_cle_API
     ```
+5. **Lancement** :
+    ```bash
+    uvicorn main:app --reload
+    ```
+L'interface sera alors accessible à l'adresse suivante : `http://127.0.0.1:8000`.
 
 ## Utilisation
-
-Pour lancer l'application en mode développement :
-
-```bash
-uvicorn main:app --reload
-```
-
-L'interface sera alors accessible à l'adresse suivante : `http://127.0.0.1:8000`.
+Exécutez simplement le fichier lanceur.bat.
 
 ## Limites
 
