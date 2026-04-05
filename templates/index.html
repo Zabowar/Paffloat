@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <title>Paffloat</title>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script
@@ -432,8 +433,6 @@
         color: var(--text-primary);
       }
 
-      /* ... vos styles existants ... */
-
       header {
         background-color: var(--bg-surface);
         border-bottom: 1px solid var(--border-light);
@@ -445,7 +444,7 @@
         top: 0;
         z-index: 100;
         gap: 16px;
-        flex-wrap: wrap; /* Permet au contenu de passer à la ligne sur mobile */
+        flex-wrap: wrap;
       }
 
       .user-nav {
@@ -455,7 +454,6 @@
         flex-wrap: wrap;
       }
 
-      /* Nouvelles classes pour remplacer les styles inline */
       .portfolio-stats {
         display: flex;
         gap: 20px;
@@ -482,18 +480,15 @@
         white-space: nowrap;
       }
 
-      /* Media Query pour mobiles */
-      /* Media Query pour mobiles */
       @media (max-width: 768px) {
         header {
           padding: 12px 16px;
           display: flex;
-          justify-content: space-between; /* Logo à gauche, User à droite */
+          justify-content: space-between;
           align-items: center;
-          flex-wrap: wrap; /* Permet aux stats de passer en dessous */
+          flex-wrap: wrap;
         }
 
-        /* Force le bloc utilisateur à rester à droite sur la même ligne */
         #user-nav-container {
           order: 2;
           flex: 1;
@@ -503,17 +498,16 @@
 
         .user-nav {
           display: flex;
-          flex-direction: row; /* Aligné horizontalement */
+          flex-direction: row;
           align-items: center;
           justify-content: flex-end;
           gap: 12px;
           width: auto;
         }
 
-        /* On déplace les stats sur une nouvelle ligne en dessous */
         .portfolio-stats {
-          order: 3; /* Passe après le logo et le profil */
-          width: 100%; /* Prend toute la largeur pour forcer le retour à la ligne */
+          order: 3;
+          width: 100%;
           margin-top: 12px;
           background: var(--bg-body);
           padding: 8px;
@@ -533,7 +527,6 @@
           font-size: 0.75rem;
         }
 
-        /* Ajustements du logo pour mobile */
         .logo {
           order: 1;
           padding: 6px 12px;
@@ -546,7 +539,6 @@
         }
       }
 
-      /* Très petits écrans */
       @media (max-width: 480px) {
         .user-nav {
           gap: 8px;
