@@ -37,7 +37,7 @@ Paffloat est une application web permettant de connaître la valeur des objets d
     ```
 
 4.  **Configuration** :
-    Créez un fichier `.env` à la racine du projet et ajoutez votre clé API CSFloat :
+    Dans le fichier `.env` à la racine du projet, ajoutez votre clé API CSFloat :
     ```text
     CSFLOAT_API_KEY=votre_cle_API
     ```
