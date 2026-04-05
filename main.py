@@ -330,8 +330,20 @@ async def get_inventory(request: Request, db: Session = Depends(get_db)):
 
 @app.get("/api/csfloat_price")
 async def get_csfloat_price(market_hash_name: str, float_value: str = None, db: Session = Depends(get_db)):
-    """Récupère le prix moyen sur CSFloat en filtrant par type (StatTrak, Souvenir, ★, Normal)."""
-    endpoint = f"csfloat_{market_hash_name}"
+    """Récupère le prix moyen sur CSFloat avec filtres min_float et max_float natifs de l'API."""
+
+    try:
+        target_float = float(float_value) if float_value and float_value != "N/A" else None
+    except ValueError:
+        target_float = None
+
+    if target_float is not None:
+        min_f = max(0.0, target_float - 0.05)
+        max_f = min(1.0, target_float + 0.05)
+        endpoint = f"csfloat_{market_hash_name}_{round(target_float, 3)}"
+    else:
+        endpoint = f"csfloat_{market_hash_name}"
+
     cache = db.query(database.APICache).filter(database.APICache.endpoint == endpoint).first()
     now = datetime.datetime.utcnow()
 
@@ -346,14 +358,28 @@ async def get_csfloat_price(market_hash_name: str, float_value: str = None, db: 
             listings = json.loads(cache.response_data)
     else:
         api_key = os.getenv("CSFLOAT_API_KEY")
+
         url = f"https://csfloat.com/api/v1/listings?market_hash_name={urllib.parse.quote(market_hash_name)}&limit=50&type=buy_now"
-        headers = {"User-Agent": "Mozilla/5.0", "Authorization": api_key}
+        if target_float is not None:
+            url += f"&min_float={min_f:.4f}&max_float={max_f:.4f}"
+
+        headers = {"User-Agent": "Mozilla/5.0"}
+        if api_key:
+            headers["Authorization"] = api_key
         
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(url, headers=headers, timeout=10.0)
                 if response.status_code == 200:
-                    listings = response.json().get("data", [])
+                    data = response.json()
+
+                    if isinstance(data, list):
+                        listings = data
+                    elif isinstance(data, dict):
+                        listings = data.get("data", [])
+                    else:
+                        listings = []
+
                     cache_data = json.dumps(listings)
                     if cache:
                         cache.last_called = now
@@ -361,27 +387,25 @@ async def get_csfloat_price(market_hash_name: str, float_value: str = None, db: 
                     else:
                         db.add(database.APICache(endpoint=endpoint, last_called=now, response_data=cache_data))
                     db.commit()
-        except Exception:
+                else:
+                    listings = []
+        except Exception as e:
+            print(f"Erreur API CSFloat : {e}")
             listings = []
 
     if not listings:
-        return {"error": "Aucune donnée"}
+        return {"error": "Aucune donnée de marché disponible"}
 
     USD_TO_EUR = await get_live_exchange_rate(db)
-    try:
-        target_float = float(float_value) if float_value and float_value != "N/A" else None
-    except ValueError:
-        target_float = None
-
-    all_prices = []
-    range_prices = []
-
+    valid_listings = []
+    
     for item in listings:
         if 'price' not in item or 'item' not in item:
             continue
             
         item_info = item.get('item', {})
         listing_name = item_info.get('market_hash_name', "")
+        
         st_val = item_info.get('stattrak')
         is_st_listing = (st_val is not None and st_val != -1) or "StatTrak" in listing_name
         is_souv_listing = item_info.get('is_souvenir', False) or "Souvenir" in listing_name
@@ -393,21 +417,46 @@ async def get_csfloat_price(market_hash_name: str, float_value: str = None, db: 
             continue
         
         price_eur = (item['price'] / 100.0) * USD_TO_EUR
-        all_prices.append(price_eur)
-
         item_f = item_info.get('float_value')
-        if target_float is not None and item_f is not None:
-            if abs(item_f - target_float) <= 0.02:
-                range_prices.append(price_eur)
+        
+        valid_listings.append({
+            "price_eur": price_eur,
+            "float_value": item_f
+        })
 
-    if target_float is not None and range_prices:
-        avg = sum(range_prices) / len(range_prices)
-        return {"average": avg, "low_precision": False, "count": len(range_prices)}
-    elif all_prices:
-        avg = sum(all_prices) / len(all_prices)
-        return {"average": avg, "low_precision": True, "count": len(all_prices)}
-    
-    return {"error": "Aucun prix correspondant"}
+    if not valid_listings:
+        return {"error": "Aucun prix correspondant à cette catégorie exacte"}
+
+    if target_float is None:
+        avg = sum(x['price_eur'] for x in valid_listings) / len(valid_listings)
+        return {"average": avg, "low_precision": True, "count": len(valid_listings), "margin": None}
+
+    current_margin = 0.01
+    max_margin = 0.05
+
+    while current_margin <= max_margin:
+        range_prices = [
+            x['price_eur'] for x in valid_listings 
+            if x['float_value'] is not None and abs(x['float_value'] - target_float) <= current_margin
+        ]
+
+        if range_prices:
+            avg = sum(range_prices) / len(range_prices)
+            return {
+                "average": avg, 
+                "low_precision": current_margin > 0.02,
+                "count": len(range_prices),
+                "margin": round(current_margin, 2)
+            }
+
+        current_margin += 0.01
+
+    prices_with_float = [x['price_eur'] for x in valid_listings if x['float_value'] is not None]
+    if prices_with_float:
+        avg = sum(prices_with_float) / len(prices_with_float)
+        return {"average": avg, "low_precision": True, "count": len(prices_with_float), "margin": "max (0.05)"}
+
+    return {"error": "Aucun prix correspondant avec float"}
     
 @app.post("/update_price")
 async def update_price(
