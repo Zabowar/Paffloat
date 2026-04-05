@@ -77,7 +77,7 @@ def get_float_category(float_value):
 async def get_steam_profile(steam_id: str):
     url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
     pseudo = steam_id
-    avatar = "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg" # Image par défaut
+    avatar = "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg"
     
     try:
         async with httpx.AsyncClient() as client:
@@ -354,7 +354,6 @@ async def get_csfloat_price(market_hash_name: str, float_value: str = None, db: 
                 response = await client.get(url, headers=headers, timeout=10.0)
                 if response.status_code == 200:
                     listings = response.json().get("data", [])
-                    # Mise à jour du cache
                     cache_data = json.dumps(listings)
                     if cache:
                         cache.last_called = now
