@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Paffloat</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script
+      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+      defer
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-body: #0b0f19;
+        --bg-surface: #111827;
+        --bg-surface-hover: #1f2937;
+        --border-light: #374151;
+        --text-primary: #f9fafb;
+        --text-secondary: #9ca3af;
+        --accent: #ffffff;
+        --accent-hover: #e5e7eb;
+        --success: #10b981;
+        --success-bg: rgba(16, 185, 129, 0.1);
+        --danger: #ef4444;
+        --danger-bg: rgba(239, 68, 68, 0.1);
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --transition: all 0.2s ease-in-out;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-primary);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      header {
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-light);
+        padding: 16px 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        font-weight: 700;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background-color: var(--bg-surface-hover);
+        border: 1px solid var(--border-light);
+        padding: 6px 16px;
+        border-radius: var(--radius-md);
+        transition: var(--transition);
+      }
+
+      .logo-paf {
+        color: #00428c;
+        margin-right: 1px;
+      }
+
+      .logo-float {
+        color: #ffffff;
+      }
+
+      .logo-dot {
+        color: #f99e1c;
+      }
+
+      .user-nav {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--border-light);
+        object-fit: cover;
+      }
+
+      .btn {
+        background-color: var(--bg-surface-hover);
+        color: var(--text-primary);
+        border: 1px solid var(--border-light);
+        padding: 8px 16px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: var(--transition);
+      }
+
+      .btn:hover {
+        background-color: var(--border-light);
+      }
+
+      .btn-danger {
+        background-color: var(--danger-bg);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.2);
+      }
+
+      .btn-danger:hover {
+        background-color: var(--danger);
+        color: white;
+      }
+
+      .btn-primary {
+        background-color: var(--accent);
+        color: var(--bg-body);
+        border-color: var(--accent);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--accent-hover);
+        border-color: var(--accent-hover);
+      }
+
+      main {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 32px;
+      }
+
+      .login-box {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        padding: 32px;
+        border-radius: var(--radius-lg);
+        max-width: 400px;
+        margin: 64px auto;
+        text-align: center;
+      }
+
+      .login-box h2 {
+        margin-bottom: 24px;
+        font-weight: 600;
+      }
+
+      .input-text {
+        background-color: var(--bg-body);
+        border: 1px solid var(--border-light);
+        color: var(--text-primary);
+        padding: 10px 14px;
+        border-radius: var(--radius-md);
+        width: 100%;
+        font-family: inherit;
+        font-size: 1rem;
+        margin-bottom: 16px;
+        transition: var(--transition);
+      }
+
+      .input-text:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .filters {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 32px;
+      }
+
+      .filter-btn {
+        background: transparent;
+        border: 1px solid var(--border-light);
+        color: var(--text-secondary);
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: var(--transition);
+      }
+
+      .filter-btn:hover {
+        border-color: var(--text-secondary);
+        color: var(--text-primary);
+      }
+
+      .filter-btn.active {
+        background: var(--text-primary);
+        color: var(--bg-body);
+        border-color: var(--text-primary);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 24px;
+      }
+
+      .card {
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        transition: var(--transition);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card-image-wrapper {
+        position: relative;
+        background: radial-gradient(circle, #2d3748 0%, #111827 100%);
+        height: 180px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .rarity-line {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+      }
+
+      .card img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.5));
+      }
+
+      .card-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        background-color: var(--bg-body);
+        padding: 12px;
+        border-radius: var(--radius-md);
+        margin-bottom: 20px;
+      }
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .stat-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .stat-value {
+        font-size: 0.875rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .badge {
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+
+      .badge-FT {
+        background: #f1c40f;
+        color: #000;
+      }
+      .badge-FN {
+        background: #27ae60;
+        color: #fff;
+      }
+      .badge-MW {
+        background: #2ecc71;
+        color: #000;
+      }
+      .badge-WW {
+        background: #e67e22;
+        color: #fff;
+      }
+      .badge-BS {
+        background: #e74c3c;
+        color: #fff;
+      }
+      .badge-NA {
+        background: #7f8c8d;
+        color: #fff;
+      }
+      .badge-qty {
+        background: var(--border-light);
+        color: var(--text-primary);
+      }
+
+      .finance-section {
+        margin-top: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .input-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .input-group label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+      }
+
+      .price-input {
+        background-color: var(--bg-body);
+        border: 1px solid var(--border-light);
+        color: var(--text-primary);
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        width: 100%;
+        font-family: inherit;
+        font-size: 0.875rem;
+        transition: var(--transition);
+      }
+
+      .price-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      .currency {
+        color: var(--success);
+        font-weight: 600;
+      }
+
+      .results {
+        border-top: 1px dashed var(--border-light);
+        padding-top: 12px;
+        font-size: 0.875rem;
+      }
+
+      .result-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+      }
+
+      .result-row.profit {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-top: 8px;
+      }
+
+      .text-success {
+        color: var(--success);
+      }
+      .text-danger {
+        color: var(--danger);
+      }
+
+      .batch-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .batch-row input[type="number"] {
+        width: 70px;
+      }
+
+      .btn-add {
+        width: 100%;
+        background: transparent;
+        border: 1px dashed var(--border-light);
+        color: var(--text-secondary);
+        padding: 8px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        margin-top: 4px;
+        transition: var(--transition);
+      }
+
+      .btn-add:hover {
+        border-color: var(--text-primary);
+        color: var(--text-primary);
+      }
+
+      /* ... vos styles existants ... */
+
+      header {
+        background-color: var(--bg-surface);
+        border-bottom: 1px solid var(--border-light);
+        padding: 12px 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        gap: 16px;
+        flex-wrap: wrap; /* Permet au contenu de passer à la ligne sur mobile */
+      }
+
+      .user-nav {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+
+      /* Nouvelles classes pour remplacer les styles inline */
+      .portfolio-stats {
+        display: flex;
+        gap: 20px;
+        text-align: right;
+        font-size: 0.875rem;
+      }
+
+      .stat-group {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .stat-group label {
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        line-height: 1.2;
+        font-weight: 600;
+      }
+
+      .stat-group span {
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      /* Media Query pour mobiles */
+      /* Media Query pour mobiles */
+      @media (max-width: 768px) {
+        header {
+          padding: 12px 16px;
+          display: flex;
+          justify-content: space-between; /* Logo à gauche, User à droite */
+          align-items: center;
+          flex-wrap: wrap; /* Permet aux stats de passer en dessous */
+        }
+
+        /* Force le bloc utilisateur à rester à droite sur la même ligne */
+        #user-nav-container {
+          order: 2;
+          flex: 1;
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .user-nav {
+          display: flex;
+          flex-direction: row; /* Aligné horizontalement */
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          width: auto;
+        }
+
+        /* On déplace les stats sur une nouvelle ligne en dessous */
+        .portfolio-stats {
+          order: 3; /* Passe après le logo et le profil */
+          width: 100%; /* Prend toute la largeur pour forcer le retour à la ligne */
+          margin-top: 12px;
+          background: var(--bg-body);
+          padding: 8px;
+          border-radius: var(--radius-md);
+          justify-content: space-around;
+          display: flex;
+        }
+
+        .user-info {
+          order: 1;
+          margin-right: 4px;
+        }
+
+        .btn-logout {
+          order: 2;
+          padding: 6px 10px;
+          font-size: 0.75rem;
+        }
+
+        /* Ajustements du logo pour mobile */
+        .logo {
+          order: 1;
+          padding: 6px 12px;
+          width: auto;
+          height: auto;
+        }
+
+        .hide-on-mobile {
+          display: none;
+        }
+      }
+
+      /* Très petits écrans */
+      @media (max-width: 480px) {
+        .user-nav {
+          gap: 8px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a href="/" class="logo">
+        <span class="logo-text">
+          <span class="logo-paf">P<span class="hide-on-mobile">af</span></span
+          ><span class="logo-float"
+            >f<span class="hide-on-mobile">loat</span></span
+          >
+        </span>
+        <span class="logo-dot">.</span>
+      </a>
+
+      <div id="user-nav-container">
+        {% if steam_id %}
+        <div class="user-nav" x-data>
+          <div class="portfolio-stats">
+            <div class="stat-group">
+              <label>Total dépensé</label>
+              <span x-text="$store.portfolio.totalSpent.toFixed(2) + ' €'"
+                >0.00 €</span
+              >
+            </div>
+            <div class="stat-group">
+              <label>Bénéfice</label>
+              <span
+                :class="$store.portfolio.totalProfit >= 0 ? 'text-success' : 'text-danger'"
+                x-text="($store.portfolio.totalProfit >= 0 ? '+ ' : '') + $store.portfolio.totalProfit.toFixed(2) + ' €'"
+              >
+                0.00 €
+              </span>
+            </div>
+          </div>
+
+          <div class="user-info">
+            <img
+              src="{{ avatar if avatar else 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg' }}"
+              alt="Avatar"
+              class="avatar"
+            />
+            <span>{{ pseudo if pseudo else steam_id }}</span>
+          </div>
+
+          <button
+            hx-post="/logout"
+            hx-target="body"
+            class="btn btn-danger btn-logout"
+          >
+            Déconnexion
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if steam_id %} {% set is_full_page = true %} {% include
+    'inventory_section.html' %} {% else %}
+    <main id="main-content">
+      <div class="login-box">
+        <h2>Connexion</h2>
+        <form hx-post="/login" hx-target="#main-content" hx-swap="outerHTML">
+          <label
+            for="steam_id"
+            style="
+              display: block;
+              margin-bottom: 8px;
+              color: var(--text-secondary);
+              text-align: left;
+              font-size: 0.875rem;
+            "
+            >Steam ID (64):</label
+          >
+          <input
+            type="text"
+            id="steam_id"
+            name="steam_id"
+            required
+            class="input-text"
+            placeholder="Ex: 76561198..."
+          />
+          <button
+            type="submit"
+            class="btn btn-primary"
+            style="width: 100%; margin-top: 8px"
+          >
+            Se connecter
+          </button>
+        </form>
+      </div>
+    </main>
+    {% endif %}
+
+    <script>
+      document.addEventListener("alpine:init", () => {
+        Alpine.store("portfolio", {
+          items: {},
+
+          get totalSpent() {
+            return Object.values(this.items).reduce(
+              (sum, item) => sum + (Number(item.cost) || 0),
+              0,
+            );
+          },
+
+          get totalProfit() {
+            return Object.values(this.items).reduce(
+              (sum, item) => sum + (Number(item.profit) || 0),
+              0,
+            );
+          },
+
+          update(id, cost, profit) {
+            this.items[id] = { cost: cost, profit: profit };
+          },
+        });
+      });
+    </script>
+  </body>
+</html>
