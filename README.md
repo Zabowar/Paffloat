@@ -7,6 +7,10 @@ Paffloat est une application web permettant de connaître la valeur des objets d
 * **Estimation CSFloat** : Récupération des prix moyens des objets similaires sur CSFloat avec conversion automatique USD/EUR en temps réel.
 * **Calcul des bénéfices de votre inventaire**
 
+## Limites
+
+Les stickers présents sur les apparences d'armes ne sont pas pris en compte dans le prix affiché car leur influence sur la valeur de l'objet dépend de trop de facteur spécifiques.
+
 ## Installation
 
 ### Prérequis
@@ -49,11 +53,14 @@ Paffloat est une application web permettant de connaître la valeur des objets d
 L'interface sera alors accessible à l'adresse suivante : `http://127.0.0.1:8000`.
 
 ## Utilisation
+
 Exécutez simplement le fichier lanceur.bat.
 
-## Limites
+## Mise à jour
 
-Les stickers présents sur les apparences d'armes ne sont pas pris en compte dans le prix affiché car leur influence sur la valeur de l'objet dépend de trop de facteur spécifiques.
+Supprimez le dossier Paffloat qui a été créé lors de l'installation puis entrez à nouveau les commandes d'installation.
+
+⚠️ Cela supprime tous les prix entrés manuellement ainsi que votre clé d'API CS Float. Veillez à bien sauvegarder préalablement cette dernière pour ne pas avoir à en recréer une.
 
 ---
 
