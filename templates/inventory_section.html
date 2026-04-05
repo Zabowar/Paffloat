@@ -1,14 +1,54 @@
 {% if not is_full_page %}
 <div id="user-nav-container" hx-swap-oob="true">
   <div class="user-nav" x-data>
-    <div class="portfolio-stats" style="display: flex; gap: 16px; margin-right: 20px; text-align: right; font-size: 0.875rem;">
-      <div style="display: flex; flex-direction: column; justify-content: center;">
-        <span style="color: var(--text-secondary); text-transform: uppercase; font-size: 0.70rem; line-height: 1;">Total dépensé</span>
-        <div style="font-weight: 600;" x-text="$store.portfolio.totalSpent.toFixed(2) + ' €'">0.00 €</div>
+    <div
+      class="portfolio-stats"
+      style="
+        display: flex;
+        gap: 16px;
+        margin-right: 20px;
+        text-align: right;
+        font-size: 0.875rem;
+      "
+    >
+      <div
+        style="display: flex; flex-direction: column; justify-content: center"
+      >
+        <span
+          style="
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            line-height: 1;
+          "
+          >Total dépensé</span
+        >
+        <div
+          style="font-weight: 600"
+          x-text="$store.portfolio.totalSpent.toFixed(2) + ' €'"
+        >
+          0.00 €
+        </div>
       </div>
-      <div style="display: flex; flex-direction: column; justify-content: center;">
-        <span style="color: var(--text-secondary); text-transform: uppercase; font-size: 0.70rem; line-height: 1;">Bénéfice</span>
-        <div style="font-weight: 600;" :class="$store.portfolio.totalProfit >= 0 ? 'text-success' : 'text-danger'" x-text="($store.portfolio.totalProfit >= 0 ? '+ ' : '') + $store.portfolio.totalProfit.toFixed(2) + ' €'">0.00 €</div>
+      <div
+        style="display: flex; flex-direction: column; justify-content: center"
+      >
+        <span
+          style="
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            line-height: 1;
+          "
+          >Bénéfice</span
+        >
+        <div
+          style="font-weight: 600"
+          :class="$store.portfolio.totalProfit >= 0 ? 'text-success' : 'text-danger'"
+          x-text="($store.portfolio.totalProfit >= 0 ? '+ ' : '') + $store.portfolio.totalProfit.toFixed(2) + ' €'"
+        >
+          0.00 €
+        </div>
       </div>
     </div>
     <div class="user-info">
