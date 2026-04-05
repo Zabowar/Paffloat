@@ -246,7 +246,7 @@
             >
             <span
               x-show="!loadingEst && estPrice !== null"
-              x-text="estPrice.toFixed(2) + ' €'"
+              x-text="estPrice ? estPrice.toFixed(2) + ' €' : ''"
             ></span>
             <span x-show="!loadingEst && estPrice === null" class="text-danger"
               >Indisponible</span
@@ -289,7 +289,7 @@
               >...</span
             >
             <span x-show="!loadingEst && estPrice !== null">
-              <span x-text="estPrice.toFixed(2) + ' €'"></span>
+              <span x-text="estPrice ? estPrice.toFixed(2) + ' €' : ''"></span>
               <span
                 x-show="lowPrecision"
                 title="Faible précision : Aucun item dans la plage de float (+/- 0.02). Moyenne globale."
