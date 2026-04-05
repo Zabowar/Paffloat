@@ -10,6 +10,7 @@ Paffloat est une application web permettant de connaître la valeur des objets d
 ## Installation
 
 ### Prérequis
+* Git
 * Python 3.8 ou supérieur.
 * Votre ID Steam : Trouvable dans les Détails de votre compte Steam en-dessous de votre pseudo.
 * Une clé API CSFloat : Trouvable sur votre Profil > Développeurs > Nouvelle clé
