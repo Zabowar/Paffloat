@@ -64,4 +64,4 @@ Supprimez le dossier Paffloat qui a été créé lors de l'installation puis ent
 
 ---
 
-*Ce projet n'est pas affilié à Valve Corporation ou CSFloat.*
+*Ce projet n'est pas affilié à Valve ou à CSFloat.*
