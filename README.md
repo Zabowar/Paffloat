@@ -9,7 +9,7 @@ Paffloat est une application web permettant de connaître la valeur des objets d
 
 ## Limites
 
-Les stickers présents sur les apparences d'armes ne sont pas pris en compte dans le prix affiché car leur influence sur la valeur de l'objet dépend de trop de facteur spécifiques.
+Les stickers présents sur les apparences d'armes ne sont pas pris en compte dans le prix affiché car leur influence sur la valeur de l'objet dépend de trop de facteurs spécifiques.
 
 ## Installation
 
