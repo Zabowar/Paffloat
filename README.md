@@ -15,9 +15,8 @@ Les stickers présents sur les apparences d'armes ne sont pas pris en compte dan
 
 ### Prérequis
 * Git
-* Python 3.8 ou supérieur.
-* Votre ID Steam : Trouvable dans les Détails de votre compte Steam en-dessous de votre pseudo.
-* Une clé API CSFloat : Trouvable sur votre Profil > Développeurs > Nouvelle clé
+* Docker Desktop ou Docker Server
+* Une clé API CSFloat : Trouvable sur Profil > Développeurs > Nouvelle clé
 
 ### Étapes
 
@@ -26,35 +25,21 @@ Les stickers présents sur les apparences d'armes ne sont pas pris en compte dan
     git clone https://github.com/Zabowar/Paffloat.git
     cd paffloat
     ```
-
-2.  **Créer un environnement virtuel** :
-    ```bash
-    python -m venv venv
-    # Sur Windows
-    venv\Scripts\activate
-    # Sur Linux/Mac
-    source venv/bin/activate
-    ```
-
-3.  **Installer les dépendances** :
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configuration** :
+2.  **Configuration** :
     Dans le fichier `.env` à la racine du projet, ajoutez votre clé API CSFloat :
     ```text
     CSFLOAT_API_KEY=votre_cle_API
     ```
 5. **Lancement** :
     ```bash
-    uvicorn main:app --reload
+    docker compose up -d --build
     ```
-L'interface sera alors accessible à l'adresse suivante : `http://127.0.0.1:8000`.
+L'interface sera alors accessible à l'adresse : `http://127.0.0.1:8000` ou sur l'IP de votre serveur.
 
 ## Utilisation
 
-Exécutez simplement le fichier lanceur.bat.
+* Si vous utilisez Paffloat en local, exécutez le fichier lanceur.bat.
+* Si Pafflot est sur un serveur, rendez vous simplement sur l'adresse de celui-ci.
 
 ## Mise à jour
 
