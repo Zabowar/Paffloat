@@ -1,0 +1,366 @@
+{% for item in items %}
+<div
+  class="card {% if not item.is_stackable %}skin-card{% endif %}"
+  {%
+  if
+  not
+  item.is_stackable
+  %}id="skin-{{ item.asset_id }}"
+  {%
+  endif
+  %}
+  x-show="selectedCategories.includes('{{ item.item_type }}') && searchQuery.toLowerCase().trim().split(/\s+/).every(word => marketHashName.toLowerCase().replace(/[ \-|]/g, '').includes(word.replace(/[ \-|]/g, '')))"
+  :style="{ order: sortOrder }"
+  x-transition
+  x-data="{
+      isStackable: {{ 'true' if item.is_stackable else 'false' }},
+      marketHashName: '{{ item.name | escape if item.is_stackable else item.market_hash_name | escape }}',
+      estPrice: null,
+      loadingEst: true,
+      lowPrecision: false,
+
+      total: {{ item.count | default(1) }},
+      batches: {% if item.is_stackable %}{% if item.batches %}{{ item.batches }}{% else %}[{ qty: {{ item.count }}, price: {{ item.purchase_price }} }]{% endif %}{% else %}[]{% endif %},
+
+      price: {{ item.purchase_price | default(0) }},
+      floatValue: '{{ item.float_value | default('') }}',
+
+      get assignedQty() {
+          return this.isStackable ? this.batches.reduce((sum, b) => sum + (Number(b.qty) || 0), 0) : 1;
+      },
+      get remaining() { 
+          return this.isStackable ? this.total - this.assignedQty : 0; 
+      },
+      get totalCost() {
+          return this.isStackable ? this.batches.reduce((sum, b) => sum + ((Number(b.qty) || 0) * (Number(b.price) || 0)), 0) : (Number(this.price) || 0);
+      },
+      get totalResale() {
+          return this.estPrice ? (this.estPrice * this.assignedQty) : 0;
+      },
+      get profit() {
+          return this.estPrice ? (this.totalResale - this.totalCost) : 0;
+      },
+      get profitPercentage() {
+          const cost = this.totalCost;
+          if (!this.estPrice || cost === 0) return '0.0';
+          return ((this.profit / cost) * 100).toFixed(1);
+      },
+      get sortOrder() {
+          if (sortMode === 'profit_desc') return Math.round(-(parseFloat(this.profit) || 0) * 100);
+          if (sortMode === 'profit_asc') return Math.round((parseFloat(this.profit) || 0) * 100);
+
+          if (sortMode === 'roi_desc') return Math.round(-(parseFloat(this.profitPercentage) || 0) * 100);
+          if (sortMode === 'roi_asc') return Math.round((parseFloat(this.profitPercentage) || 0) * 100);
+          
+          if (sortMode === 'price_desc') return Math.round(-(parseFloat(this.totalCost) || 0) * 100);
+          if (sortMode === 'price_asc') return Math.round((parseFloat(this.totalCost) || 0) * 100);
+          
+          if (sortMode === 'float_asc') {
+              if (this.isStackable || !this.floatValue || this.floatValue === 'N/A') return 999999;
+              return Math.round(parseFloat(this.floatValue) * 1000000);
+          }
+          if (sortMode === 'float_desc') {
+              if (this.isStackable || !this.floatValue || this.floatValue === 'N/A') return 999999;
+              return Math.round(-parseFloat(this.floatValue) * 1000000);
+          }
+          return 0;
+      },
+
+      addBatch() { 
+          if(this.remaining > 0) this.batches.push({ qty: this.remaining, price: 0.00 });
+      },
+      removeBatch(index) { 
+          this.batches.splice(index, 1); 
+          this.saveData();
+      },
+
+      saveData() {
+          let formData = new FormData();
+          formData.append('asset_id', '{{ item.asset_id }}');
+          formData.append('name', '{{ item.name | escape }}');
+          
+          if (this.isStackable) {
+              if (this.assignedQty === 0) return;
+              let avgPrice = this.totalCost / this.assignedQty;
+              formData.append('price', (avgPrice || 0).toFixed(2));
+              formData.append('batches', JSON.stringify(this.batches));
+          } else {
+              formData.append('price', Number(this.price) || 0);
+          }
+          
+          fetch('/update_price', { method: 'POST', body: formData });
+      },
+
+      async updatePrice() {
+          try {
+              const isForceRefresh = {{ 'true' if force_refresh else 'false' }};
+              const forceParam = isForceRefresh ? '&force_refresh=true' : '';
+              let url = `/api/csfloat_price?market_hash_name=${encodeURIComponent(this.marketHashName)}${forceParam}`;
+              
+              if (!this.isStackable && this.floatValue && this.floatValue !== 'N/A') {
+                  url += `&float_value=${this.floatValue}`;
+              }
+
+              const res = await fetch(url);
+              const data = await res.json();
+              if(data.average) {
+                  this.estPrice = data.average;
+                  if(!this.isStackable) this.lowPrecision = data.low_precision || false;
+              }
+          } catch (error) {
+              console.error('Erreur de prix:', error);
+          } finally {
+              this.loadingEst = false;
+          }
+      },
+      init() { this.updatePrice(); }
+  }"
+  x-effect="$store.portfolio.update('{{ item.asset_id }}', totalCost, profit)"
+>
+  <div
+    class="card-image-wrapper"
+    style="--rarity-color: #{{ item.rarity_color }}60;"
+  >
+    <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy" />
+    <div
+      class="rarity-line"
+      :style="{ backgroundColor: '#{{ item.rarity_color }}' }"
+    ></div>
+  </div>
+
+  <div class="card-content">
+    {% set title_color = '#ffffff' %} {% if 'StatTrak' in item.name %} {% set
+    title_color = '#ff782c' %} {% elif 'Souvenir' in item.name %} {% set
+    title_color = '#e0e051' %} {% elif '★' in item.name %} {% set title_color =
+    '#ffd7aa' %} {% endif %}
+
+    <h3
+      class="card-title"
+      title="{{ item.name }}"
+      :style="{ color: '{{ title_color }}' }"
+    >
+      {{ item.name }}
+    </h3>
+
+    <div
+      class="stats-grid"
+      {%
+      if
+      item.is_stackable
+      %}style="display: flex; justify-content: center;"
+      {%
+      endif
+      %}
+    >
+      {% if item.is_stackable %}
+      <div class="stat-item" style="align-items: center">
+        <span class="stat-label">Quantité Totale</span>
+        <span class="stat-value" style="font-size: 1.25rem">
+          <span class="badge badge-qty">{{ item.count }}</span>
+        </span>
+      </div>
+      {% else %}
+      <div class="stat-item">
+        <span class="stat-label">Float</span>
+        {% if item.float_value and item.float_value != 'N/A' %}
+        <span class="stat-value">
+          {{ item.float_value }}
+          <span class="badge badge-{{ item.float_category | replace('/', '') }}"
+            >{{ item.float_category }}</span
+          >
+        </span>
+        {% else %}
+        <span
+          class="stat-value"
+          style="
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-style: italic;
+          "
+        >
+          Recherche...
+        </span>
+        {% endif %}
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Seed</span>
+        <span class="stat-value"
+          >{% if item.float_value and item.float_value != 'N/A' %}{{ item.seed
+          }}{% else %}-{% endif %}</span
+        >
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="finance-section">
+      {% if item.is_stackable %}
+      <label
+        style="
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+        "
+        >Lots d'achat</label
+      >
+
+      <template x-for="(batch, index) in batches" :key="index">
+        <div class="batch-row">
+          <input
+            type="number"
+            class="price-input"
+            x-model.number="batch.qty"
+            min="1"
+            :max="batch.qty + remaining"
+            @change="saveData()"
+          />
+          <span style="color: var(--text-secondary)">x</span>
+          <input
+            type="text"
+            inputmode="decimal"
+            class="price-input"
+            x-model="batch.price"
+            @input="batch.price = $event.target.value.replace(',', '.'); $event.target.value = batch.price"
+            @change="saveData()"
+          />
+          <span class="currency" x-text="$store.portfolio.symbol">€</span>
+          <button
+            @click="removeBatch(index)"
+            x-show="batches.length > 1"
+            class="btn btn-danger"
+            style="padding: 6px 10px; font-weight: bold"
+            title="Supprimer"
+          >
+            X
+          </button>
+        </div>
+      </template>
+
+      <button @click="addBatch()" x-show="remaining > 0" class="btn-add">
+        + Ajouter un lot (Reste: <span x-text="remaining"></span>)
+      </button>
+      <div
+        x-show="remaining < 0"
+        style="
+          color: var(--danger);
+          font-size: 0.85em;
+          margin-top: 5px;
+          text-align: center;
+        "
+      >
+        Quantité dépassée de <span x-text="-remaining"></span> !
+      </div>
+
+      <div class="results" style="margin-top: 8px">
+        <div class="result-row">
+          <span style="color: var(--text-secondary)">Revente unitaire</span>
+          <span x-show="loadingEst" style="color: var(--text-secondary)"
+            >...</span
+          >
+          <span
+            x-show="!loadingEst && estPrice !== null"
+            x-text="estPrice ? $store.portfolio.convert(estPrice).toFixed(2) + ' ' + $store.portfolio.symbol : ''"
+          >
+          </span>
+          <span x-show="!loadingEst && estPrice === null" class="text-danger"
+            >Indisponible</span
+          >
+        </div>
+        <div class="result-row" x-show="!loadingEst && estPrice !== null">
+          <span style="color: var(--text-secondary)">Revente totale</span>
+          <span
+            x-text="$store.portfolio.convert(totalResale).toFixed(2) + ' ' + $store.portfolio.symbol"
+          ></span>
+        </div>
+        <div
+          class="result-row profit"
+          x-show="!loadingEst && estPrice !== null"
+        >
+          <span>Bénéfice total</span>
+          <div>
+            <span
+              :class="profit >= 0 ? 'text-success' : 'text-danger'"
+              x-text="(profit >= 0 ? '+ ' : '') + $store.portfolio.convert(profit).toFixed(2) + ' ' + $store.portfolio.symbol"
+            ></span>
+          </div>
+        </div>
+      </div>
+
+      {% else %}
+      <div class="input-group">
+        <label>Achat</label>
+        <input
+          type="text"
+          inputmode="decimal"
+          class="price-input"
+          x-model="price"
+          @input="price = $event.target.value.replace(',', '.'); $event.target.value = price"
+          @change="saveData()"
+        />
+        <span class="currency" x-text="$store.portfolio.symbol">€</span>
+      </div>
+
+      <div class="results">
+        <div class="result-row">
+          <span style="color: var(--text-secondary)">Revente</span>
+          <span x-show="loadingEst" style="color: var(--text-secondary)"
+            >...</span
+          >
+          <span x-show="!loadingEst && estPrice !== null">
+            <span
+              x-text="estPrice ? $store.portfolio.convert(estPrice).toFixed(2) + ' ' + $store.portfolio.symbol : ''"
+            ></span>
+            <span
+              x-show="lowPrecision"
+              title="Faible précision..."
+              style="cursor: help"
+              >⚠️</span
+            >
+          </span>
+          <span x-show="!loadingEst && estPrice === null" class="text-danger"
+            >Indisponible</span
+          >
+        </div>
+        <div
+          class="result-row profit"
+          x-show="!loadingEst && estPrice !== null"
+        >
+          <span>Bénéfice</span>
+          <div>
+            <span
+              :class="profit >= 0 ? 'text-success' : 'text-danger'"
+              x-text="(profit >= 0 ? '+ ' : '') + $store.portfolio.convert(profit).toFixed(2) + ' ' + $store.portfolio.symbol"
+            ></span>
+            <span
+              x-show="Number(price) > 0"
+              style="
+                color: white;
+                font-size: 0.8em;
+                font-weight: normal;
+                margin-left: 4px;
+              "
+              x-text="'(' + (profit >= 0 ? '+' : '') + profitPercentage + '%)'"
+            ></span>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+<div
+  style="
+    grid-column: 1 / -1;
+    padding: 20px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    text-align: center;
+  "
+>
+  <p style="color: var(--text-secondary)">
+    Aucun objet trouvé dans l'inventaire, ou l'inventaire est défini sur privé
+    sur Steam.
+  </p>
+</div>
+{% endfor %}

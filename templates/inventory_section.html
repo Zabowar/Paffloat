@@ -1,0 +1,307 @@
+{% if not is_full_page %}
+<div id="user-nav-container" hx-swap-oob="true">
+  <div class="user-nav" x-data>
+    <div
+      class="portfolio-stats"
+      style="
+        display: flex;
+        gap: 16px;
+        margin-right: 20px;
+        text-align: right;
+        font-size: 0.875rem;
+      "
+    >
+      <div
+        style="display: flex; flex-direction: column; justify-content: center"
+      >
+        <span
+          style="
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            line-height: 1;
+          "
+          >Total dépensé</span
+        >
+        <div style="font-weight: 600">
+          <span
+            x-text="$store.portfolio.totalSpent.toFixed(2) + ' ' + $store.portfolio.symbol"
+            >0.00 €</span
+          >
+        </div>
+      </div>
+
+      <div
+        style="display: flex; flex-direction: column; justify-content: center"
+      >
+        <span
+          style="
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            line-height: 1;
+          "
+          >Bénéfice</span
+        >
+        <div style="font-weight: 600">
+          <span
+            :class="$store.portfolio.totalProfit >= 0 ? 'text-success' : 'text-danger'"
+            x-text="($store.portfolio.totalProfit >= 0 ? '+ ' : '') + $store.portfolio.totalProfit.toFixed(2) + ' ' + $store.portfolio.symbol"
+          >
+            0.00 €
+          </span>
+          <span
+            style="
+              color: white;
+              font-size: 0.8em;
+              font-weight: normal;
+              margin-left: 4px;
+            "
+            x-text="'(' + ($store.portfolio.totalProfit >= 0 ? '+' : '') + $store.portfolio.totalProfitPercentage.toFixed(1) + '%)'"
+          >
+            (0.0%)
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="user-info">
+      <img
+        src="{{ avatar if avatar else 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg' }}"
+        alt="Avatar"
+        class="avatar"
+      />
+      <span>{{ pseudo }}</span>
+    </div>
+    <button hx-post="/logout" hx-target="body" class="btn btn-danger">
+      Déconnexion
+    </button>
+  </div>
+</div>
+{% endif %}
+
+<main
+  id="main-content"
+  x-data="{ 
+    searchQuery: '',
+    selectedCategories: ['armes', 'gants', 'agents', 'caisses', 'stickers', 'porte-cles', 'ecussons', 'pins', 'kits_musique', 'autre'],
+    sortMode: 'profit_desc' 
+}"
+>
+  <div id="loading-overlay" class="htmx-indicator">
+    <div class="spinner"></div>
+    <h2 style="color: var(--text-primary); font-weight: 600">
+      Chargement de l'inventaire...
+    </h2>
+    <p style="color: var(--text-secondary); margin-top: 8px">
+      Veuillez patienter quelques instants
+    </p>
+  </div>
+  <div class="inventory-layout">
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <button
+          hx-get="/inventory?force_refresh=true"
+          hx-target="#inventory-container"
+          hx-indicator="#loading-overlay"
+          class="btn btn-primary"
+          style="
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+          "
+          title="Attention : N'utilisez pas ce bouton trop fréquemment. De multiples requêtes forcées rapprochées peuvent entraîner un bannissement temporaire de votre IP par les APIs de Steam et CSFloat. Le contenu se met à jour automatiquement toutes les 15 minutes."
+        >
+          <svg
+            width="16"
+            height="16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path
+              d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+            ></path>
+          </svg>
+          Actualisation forcée
+        </button>
+      </div>
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Recherche</h3>
+        <input
+          type="text"
+          x-model="searchQuery"
+          class="search-input"
+          placeholder="Nom de l'objet..."
+        />
+      </div>
+
+      <div
+        class="sidebar-section"
+        x-data="{ 
+          dropdownOpen: false,
+          options: {
+              'profit_desc': 'Meilleur bénéfice',
+              'profit_asc': 'Plus faible bénéfice',
+              'roi_desc': 'Meilleur ROI (%)',
+              'roi_asc': 'Pire ROI (%)',
+              'price_desc': 'Achat le plus cher',
+              'price_asc': 'Achat le moins cher',
+              'float_asc': 'Float le plus bas',
+              'float_desc': 'Float le plus élevé'
+          }
+      }"
+      >
+        <h3 class="sidebar-title">Trier par</h3>
+
+        <div
+          class="custom-dropdown-container"
+          @click.away="dropdownOpen = false"
+        >
+          <button
+            type="button"
+            class="custom-select-btn"
+            @click="dropdownOpen = !dropdownOpen"
+            :class="{ 'is-active': dropdownOpen }"
+          >
+            <span x-text="options[sortMode]"></span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              :class="{ 'rotate-180': dropdownOpen }"
+              class="dropdown-icon"
+            >
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+
+          <div
+            class="dropdown-menu"
+            x-show="dropdownOpen"
+            x-transition.opacity.duration.200ms
+            style="display: none"
+          >
+            <template x-for="(label, value) in options" :key="value">
+              <div
+                class="dropdown-item"
+                :class="{ 'selected': sortMode === value }"
+                @click="sortMode = value; dropdownOpen = false"
+                x-text="label"
+              ></div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3 class="sidebar-title">Catégories</h3>
+        <div style="margin-bottom: 10px; display: flex; gap: 8px">
+          <button
+            @click="selectedCategories = ['armes', 'gants', 'agents', 'caisses', 'stickers', 'porte-cles', 'ecussons', 'pins', 'kits_musique', 'autre']"
+            class="btn btn-primary"
+            style="padding: 4px 8px; font-size: 0.75rem"
+          >
+            Toutes
+          </button>
+          <button
+            @click="selectedCategories = []"
+            class="btn btn-danger"
+            style="padding: 4px 8px; font-size: 0.75rem"
+          >
+            Aucunes
+          </button>
+        </div>
+        <div class="checkbox-group">
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="armes"
+            />
+            Armes</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="caisses"
+            />
+            Caisses</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="gants"
+            />
+            Gants</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="stickers"
+            />
+            Stickers</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="porte-cles"
+            />
+            Porte-clés</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="kits_musique"
+            />
+            Kits de musique</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="agents"
+            />
+            Agents</label
+          >
+          <label class="checkbox-label"
+            ><input
+              type="checkbox"
+              x-model="selectedCategories"
+              value="ecussons"
+            />
+            Écussons</label
+          >
+          <label class="checkbox-label"
+            ><input type="checkbox" x-model="selectedCategories" value="pins" />
+            Pins</label
+          >
+        </div>
+      </div>
+    </aside>
+
+    <div class="inventory-content">
+      <div
+        class="grid"
+        hx-get="/inventory"
+        hx-trigger="load"
+        hx-indicator="#loading-overlay"
+        id="inventory-container"
+      ></div>
+    </div>
+  </div>
+</main>
