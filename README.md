@@ -1,6 +1,10 @@
 <div align="center">
-    <img src="static/favicon.svg" alt="Paffloat Logo" width="200"/>
-    <h1>Paffloat</h1>
+    <img src="static/LogoPaffloat.svg" alt="Paffloat Logo" width="200"/>
+</div>
+
+---
+
+<div align="center">
     <img src="https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white" alt="Python">
     <img src="https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi" alt="FastAPI">
     <img src="https://img.shields.io/badge/SQLite-07405E?style=flat&logo=sqlite&logoColor=white" alt="SQLite">
@@ -18,7 +22,7 @@
 
 ## ✨ Fonctionnalités
 
-* **Authentification Steam sécurisée** : Connectez-vous directement via Steam OpenID pour récupérer votre inventaire.
+* **Authentification Steam** : Connectez-vous directement via Steam OpenID pour récupérer votre inventaire.
 * **Estimation CSFloat en direct** : Récupération des prix moyens des objets similaires sur CSFloat.
 * **Conversion dynamique** : Conversion automatique des prix USD vers EUR en temps réel.
 * **Calcul de rentabilité** : Suivez vos prix d'achat, calculez vos bénéfices (ROI) et la valeur totale de votre inventaire.
@@ -27,7 +31,7 @@
 
 ## ⚠️ Limite
 
-* **Stickers appliqués** : Les stickers présents sur les armes ne sont pas pris en compte dans le prix affiché, car leur influence sur la valeur finale dépend de trop de facteurs spécifiques au marché.
+* **Stickers appliqués** : Les stickers présents sur les armes ne sont pas pris en compte dans le prix affiché, car leur influence sur la valeur finale dépend de trop de facteurs spécifiques.
 
 ---
 
