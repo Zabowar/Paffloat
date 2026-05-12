@@ -14,10 +14,12 @@
   x-transition
   x-data="{
       isStackable: {{ 'true' if item.is_stackable else 'false' }},
-      marketHashName: '{{ item.name | escape if item.is_stackable else item.market_hash_name | escape }}',
+      hasFloat: {{ 'true' if item.has_float else 'false' }},
+      marketHashName: '{{ (item.market_hash_name if item.market_hash_name else item.name) | escape }}',
       estPrice: null,
       loadingEst: true,
       lowPrecision: false,
+      itemCount: null,
 
       total: {{ item.count | default(1) }},
       batches: {% if item.is_stackable %}{% if item.batches %}{{ item.batches }}{% else %}[{ qty: {{ item.count }}, price: {{ item.purchase_price }} }]{% endif %}{% else %}[]{% endif %},
@@ -103,9 +105,10 @@
 
               const res = await fetch(url);
               const data = await res.json();
-              if(data.average) {
-                  this.estPrice = data.average;
-                  if(!this.isStackable) this.lowPrecision = data.low_precision || false;
+              if(data.median) { 
+                  this.estPrice = data.median;
+                  this.itemCount = data.count; 
+                  if(!this.isStackable && this.hasFloat) this.lowPrecision = data.low_precision || false;
               }
           } catch (error) {
               console.error('Erreur de prix:', error);
@@ -113,7 +116,12 @@
               this.loadingEst = false;
           }
       },
-      init() { this.updatePrice(); }
+      init() { 
+          const delay = Math.floor(Math.random() * 3000);
+          setTimeout(() => {
+              this.updatePrice();
+          }, delay);
+      }
   }"
   x-effect="$store.portfolio.update('{{ item.asset_id }}', totalCost, profit)"
 >
@@ -129,10 +137,11 @@
   </div>
 
   <div class="card-content">
-    {% set title_color = '#ffffff' %} {% if 'StatTrak' in item.name %} {% set
-    title_color = '#ff782c' %} {% elif 'Souvenir' in item.name %} {% set
-    title_color = '#e0e051' %} {% elif '★' in item.name %} {% set title_color =
-    '#ffd7aa' %} {% endif %}
+    {% set check_name = item.market_hash_name if item.market_hash_name else
+    item.name %} {% set title_color = '#ffffff' %} {% if 'StatTrak' in
+    check_name %} {% set title_color = '#ff782c' %} {% elif 'Souvenir' in
+    check_name %} {% set title_color = '#e0e051' %} {% elif '★' in check_name %}
+    {% set title_color = '#ffd7aa' %} {% endif %}
 
     <h3
       class="card-title"
@@ -144,13 +153,7 @@
 
     <div
       class="stats-grid"
-      {%
-      if
-      item.is_stackable
-      %}style="display: flex; justify-content: center;"
-      {%
-      endif
-      %}
+      style="{% if item.is_stackable %}display: flex; justify-content: center;{% else %}gap: 28px;{% endif %}"
     >
       {% if item.is_stackable %}
       <div class="stat-item" style="align-items: center">
@@ -159,16 +162,27 @@
           <span class="badge badge-qty">{{ item.count }}</span>
         </span>
       </div>
-      {% else %}
-      <div class="stat-item">
-        <span class="stat-label">Float</span>
-        {% if item.float_value and item.float_value != 'N/A' %}
-        <span class="stat-value">
-          {{ item.float_value }}
-          <span class="badge badge-{{ item.float_category | replace('/', '') }}"
+      {% else %} {% if item.has_float %}
+      <div class="stat-item" style="align-items: center; text-align: center">
+        <span
+          class="stat-label"
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+          "
+        >
+          Float {% if item.float_value and item.float_value != 'N/A' %}
+          <span
+            class="badge badge-{{ item.float_category | replace('/', '') }}"
+            style="text-transform: none; letter-spacing: normal"
             >{{ item.float_category }}</span
           >
+          {% endif %}
         </span>
+        {% if item.float_value and item.float_value != 'N/A' %}
+        <span class="stat-value"> {{ item.float_value }} </span>
         {% else %}
         <span
           class="stat-value"
@@ -182,14 +196,23 @@
         </span>
         {% endif %}
       </div>
-      <div class="stat-item">
+      <div class="stat-item" style="align-items: center; text-align: center">
         <span class="stat-label">Seed</span>
         <span class="stat-value"
           >{% if item.float_value and item.float_value != 'N/A' %}{{ item.seed
           }}{% else %}-{% endif %}</span
         >
       </div>
-      {% endif %}
+      {% else %}
+      <div class="stat-item" style="align-items: center; text-align: center">
+        <span class="stat-label">Float</span>
+        <span class="stat-value" style="color: var(--text-secondary)">-</span>
+      </div>
+      <div class="stat-item" style="align-items: center; text-align: center">
+        <span class="stat-label">Seed</span>
+        <span class="stat-value" style="color: var(--text-secondary)">-</span>
+      </div>
+      {% endif %} {% endif %}
     </div>
 
     <div class="finance-section">
@@ -256,10 +279,17 @@
           <span x-show="loadingEst" style="color: var(--text-secondary)"
             >...</span
           >
-          <span
-            x-show="!loadingEst && estPrice !== null"
-            x-text="estPrice ? $store.portfolio.convert(estPrice).toFixed(2) + ' ' + $store.portfolio.symbol : ''"
-          >
+          <span x-show="!loadingEst && estPrice !== null">
+            <span
+              x-text="estPrice ? $store.portfolio.convert(estPrice).toFixed(2) + ' ' + $store.portfolio.symbol : ''"
+            ></span>
+            <span
+              x-show="itemCount !== null && itemCount < 5"
+              class="text-danger"
+              style="font-size: 0.8em; margin-left: 4px; cursor: help"
+              title="Estimation peu fiable (peu de données de marché)"
+              >⚠️</span
+            >
           </span>
           <span x-show="!loadingEst && estPrice === null" class="text-danger"
             >Indisponible</span
@@ -310,10 +340,17 @@
               x-text="estPrice ? $store.portfolio.convert(estPrice).toFixed(2) + ' ' + $store.portfolio.symbol : ''"
             ></span>
             <span
-              x-show="lowPrecision"
-              title="Faible précision..."
+              x-show="hasFloat && lowPrecision"
+              title="Faible précision due à la marge du float..."
               style="cursor: help"
               >⚠️</span
+            >
+            <span
+              x-show="itemCount !== null && itemCount < 5"
+              class="text-danger"
+              style="font-size: 0.8em; margin-left: 4px; cursor: help"
+              title="Estimation peu fiable (moins de 5 données de marché)"
+              >📉</span
             >
           </span>
           <span x-show="!loadingEst && estPrice === null" class="text-danger"
