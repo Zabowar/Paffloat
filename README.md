@@ -86,4 +86,10 @@ Si vous préférez supprimer le dossier Paffloat et tout recommencer, **pensez �
 
 ---
 
+### Versions
+
+1.1 : Amélioration de la précision du prix de vente estimé et mises à jour mineures de l'interface.
+
+--- 
+
 Ce projet n'est en aucun cas affilié, associé, autorisé ou approuvé par Valve ou CSFloat.*
