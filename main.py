@@ -3,6 +3,7 @@ import json
 import httpx
 import os
 import urllib.parse
+import statistics
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -92,6 +93,15 @@ def extract_steam_xml_data(text: str, tag: str, default: str) -> str:
             return text[start:end]
     return default
 
+def format_float_strict(val) -> str:
+    """Garantit strictement un float formaté à exactement 10 chiffres après la virgule."""
+    if val is None or val == "N/A":
+        return "N/A"
+    try:
+        return f"{float(val):.12f}"
+    except (ValueError, TypeError):
+        return "N/A"
+
 async def get_steam_profile(steam_id: str):
     url = f"https://steamcommunity.com/profiles/{steam_id}/?xml=1"
     pseudo = steam_id
@@ -131,7 +141,7 @@ async def get_live_exchange_rate(db: Session) -> float:
     except Exception as e:
         print(f"Erreur API taux de change: {e}")
 
-    return float(cache.response_data) if cache else 0.87 
+    return float(cache.response_data) if cache else 0.87
 
 async def fetch_inventory(steam_id: str, db: Session, force_refresh: bool = False):
     endpoint = f"steam_inv_{steam_id}"
@@ -145,6 +155,33 @@ async def fetch_inventory(steam_id: str, db: Session, force_refresh: bool = Fals
             asset_id = item.get("asset_id")
             if asset_id in saved_prices:
                 item["purchase_price"] = saved_prices[asset_id]
+
+            fv = item.get("float_value", "N/A")
+            item["has_float"] = item.get("item_type") in ["armes", "gants"] or fv != "N/A"
+
+            if fv != "N/A":
+                item["float_value"] = format_float_strict(fv)
+
+            if "market_hash_name" not in item:
+                item["market_hash_name"] = item.get("name", "")
+
+            item_type = item.get("item_type")
+            display_name = item.get("name", "")
+            
+            if item_type in ["kits_musique", "porte-cles", "ecussons"]:
+                if " | " in display_name:
+                    display_name = display_name.split(" | ")[-1].strip()
+            elif item_type == "pins":
+                if " | " in display_name:
+                    display_name = display_name.split(" | ")[-1].strip()
+                if display_name.endswith(" Pin"):
+                    display_name = display_name[:-4].strip()
+            elif item_type == "agents":
+                if " | " in display_name:
+                    display_name = display_name.split(" | ")[0].strip()
+            
+            item["name"] = display_name
+            
         return items
 
     url = f"https://steamcommunity.com/inventory/{steam_id}/730/2?l=fenglish&count=50"
@@ -193,28 +230,27 @@ async def fetch_inventory(steam_id: str, db: Session, force_refresh: bool = Fals
                 for tag in tags:
                     if tag.get("category") == "Rarity":
                         internal_name = tag.get("internal_name", "")
-                        if "Common" in internal_name: 
-                            rarity_color = "B0C3D9"
-                        elif "Uncommon" in internal_name: 
-                            rarity_color = "5E98D9"
-                        elif "Rare" in internal_name: 
-                            rarity_color = "4B69FF"
-                        elif "Mythical" in internal_name: 
-                            rarity_color = "8847FF"
-                        elif "Legendary" in internal_name: 
-                            rarity_color = "D32CE6"
-                        elif "Ancient" in internal_name: 
-                            rarity_color = "EB4B4B"
-                        elif "Contraband" in internal_name: 
-                            rarity_color = "E4AE33"
-                        else: 
-                            rarity_color = tag.get("color", "2c2c2c")
+                        if "Common" in internal_name: rarity_color = "B0C3D9"
+                        elif "Uncommon" in internal_name: rarity_color = "5E98D9"
+                        elif "Rare" in internal_name: rarity_color = "4B69FF"
+                        elif "Mythical" in internal_name: rarity_color = "8847FF"
+                        elif "Legendary" in internal_name: rarity_color = "D32CE6"
+                        elif "Ancient" in internal_name: rarity_color = "EB4B4B"
+                        elif "Contraband" in internal_name: rarity_color = "E4AE33"
+                        else: rarity_color = tag.get("color", "2c2c2c")
                         break
 
                 if "★" in raw_name:
                     rarity_color = "FFD700"
                 is_stackable = any(tag.get("internal_name") in STACKABLE_TYPES for tag in tags)
                 img_url = f"https://community.cloudflare.steamstatic.com/economy/image/{desc.get('icon_url')}"
+
+                market_hash_name = desc.get("market_hash_name", raw_name)
+                display_name = clean_name
+                
+                if item_type in ["kits_musique", "porte-cles", "ecussons", "pin", "agents"]:
+                    if " | " in display_name:
+                        display_name = display_name.split(" | ")[-1].strip()
 
                 if is_stackable:
                     if clean_name in stackables_map:
@@ -240,33 +276,41 @@ async def fetch_inventory(steam_id: str, db: Session, force_refresh: bool = Fals
                             db_skins_map[clean_name] = new_skin
 
                         stackables_map[clean_name] = {
-                            "asset_id": clean_name, "name": clean_name, "image_url": img_url,
+                            "asset_id": clean_name, "name": display_name, "market_hash_name": market_hash_name, "image_url": img_url,
                             "is_stackable": True, "count": 1, "purchase_price": price, "batches": batches_str,
-                            "rarity_color": rarity_color, "item_type": item_type 
+                            "rarity_color": rarity_color, "item_type": item_type,
+                            "has_float": False
                         }
                 else:
                     db_skin = db_skins_map.get(asset_id) 
-                    market_hash_name = desc.get("market_hash_name", raw_name)
-                    
+                    has_float = item_type in ["armes", "gants"]
+
                     item = {
-                        "asset_id": asset_id, "name": clean_name, "market_hash_name": market_hash_name,
+                        "asset_id": asset_id, "name": display_name, "market_hash_name": market_hash_name,
                         "image_url": img_url, "float_value": "N/A", "float_category": "N/A", "seed": "N/A",
                         "purchase_price": db_skin.purchase_price if db_skin else 0.00,
-                        "is_stackable": False, "rarity_color": rarity_color, "item_type": item_type
+                        "is_stackable": False, "rarity_color": rarity_color, "item_type": item_type,
+                        "has_float": has_float
                     }
 
                     if db_skin and db_skin.float_value is not None:
                         item.update({
-                            "float_value": db_skin.float_value,
+                            "float_value": format_float_strict(db_skin.float_value),
                             "float_category": db_skin.float_category or get_float_category(db_skin.float_value), 
-                            "seed": db_skin.seed if db_skin.seed is not None else "N/A"
+                            "seed": db_skin.seed if db_skin.seed is not None else "N/A",
+                            "has_float": True
                         })
                     elif asset_id in asset_props_map:
                         f_val = asset_props_map[asset_id]["float"]
                         s_val = asset_props_map[asset_id]["seed"]
                         if f_val is not None:
                             f_cat = get_float_category(f_val)
-                            item.update({"float_value": f_val, "float_category": f_cat, "seed": s_val if s_val is not None else "N/A"})
+                            item.update({
+                                "float_value": format_float_strict(f_val), 
+                                "float_category": f_cat, 
+                                "seed": s_val if s_val is not None else "N/A",
+                                "has_float": True
+                            })
                             if not db_skin:
                                 db.add(database.Skin(steam_id=steam_id, asset_id=asset_id, name=clean_name, float_value=f_val, float_category=f_cat, seed=s_val, purchase_price=0.0))
                             else:
@@ -286,7 +330,7 @@ async def fetch_inventory(steam_id: str, db: Session, force_refresh: bool = Fals
             
     except Exception as e:
         print(f"Erreur API Steam: {e}")
-        return json.loads(cache.response_data) if cache and cache.response_data else [] 
+        return json.loads(cache.response_data) if cache and cache.response_data else []
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, db: Session = Depends(get_db)):
@@ -390,8 +434,23 @@ async def get_csfloat_price(market_hash_name: str, float_value: Optional[str] = 
     else:
         api_key = os.getenv("CSFLOAT_API_KEY")
         url = f"https://csfloat.com/api/v1/listings?market_hash_name={urllib.parse.quote(market_hash_name)}&limit=50&type=buy_now"
+
         if target_float is not None:
-            url += f"&min_float={max(0.0, target_float - 0.05):.4f}&max_float={min(1.0, target_float + 0.05):.4f}"
+            cat_min, cat_max = 0.0, 1.0
+            if target_float < 0.07:
+                cat_max = 0.07
+            elif target_float < 0.15:
+                cat_min, cat_max = 0.07, 0.15
+            elif target_float < 0.38:
+                cat_min, cat_max = 0.15, 0.38
+            elif target_float < 0.45:
+                cat_min, cat_max = 0.38, 0.45
+            else:
+                cat_min = 0.45
+            
+            min_f = max(cat_min, target_float - 0.05)
+            max_f = min(cat_max, target_float + 0.05)
+            url += f"&min_float={min_f:.4f}&max_float={max_f:.4f}"
 
         headers = {"User-Agent": "Mozilla/5.0"}
         if api_key: headers["Authorization"] = api_key
@@ -442,15 +501,22 @@ async def get_csfloat_price(market_hash_name: str, float_value: Optional[str] = 
         return {"error": "Aucun prix correspondant à cette catégorie exacte"}
 
     if target_float is None:
-        return {"average": sum(x['price_eur'] for x in valid_listings) / len(valid_listings), "low_precision": True, "count": len(valid_listings), "margin": None}
+        prices = [x['price_eur'] for x in valid_listings]
+        return {"median": statistics.median(prices), "low_precision": True, "count": len(valid_listings), "margin": None}
 
     for margin in (0.01, 0.02, 0.03, 0.04, 0.05):
         range_prices = [x['price_eur'] for x in valid_listings if x['float_value'] is not None and abs(x['float_value'] - target_float) <= margin]
-        if range_prices:
-            return {"average": sum(range_prices) / len(range_prices), "low_precision": margin > 0.02, "count": len(range_prices), "margin": margin}
+
+        if len(range_prices) >= 3 or (margin == 0.05 and range_prices):
+            return {
+                "median": statistics.median(range_prices), 
+                "low_precision": margin > 0.02 or len(range_prices) < 3, 
+                "count": len(range_prices), 
+                "margin": margin
+            }
 
     prices_with_float = [x['price_eur'] for x in valid_listings if x['float_value'] is not None]
     if prices_with_float:
-        return {"average": sum(prices_with_float) / len(prices_with_float), "low_precision": True, "count": len(prices_with_float), "margin": "max (0.05)"}
+        return {"median": statistics.median(prices_with_float), "low_precision": True, "count": len(prices_with_float), "margin": "max (0.05)"}
 
     return {"error": "Aucun prix correspondant avec float"}
